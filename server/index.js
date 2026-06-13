@@ -6,16 +6,17 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-// ✅ Sahi:
 app.use(cors({
   origin: [
     'https://clothing-swap-marketplace.vercel.app',
+    'https://clothing-swap-marketplace-784ljgtn2-kezar975s-projects.vercel.app',
     'https://clothing-swap-marketplace-ten.vercel.app',
     'http://localhost:5173',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    '*'  
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
