@@ -7,14 +7,19 @@ const path = require('path');
 
 const app = express();
 
-// CORS configuration - allowing production domains and localhost
-const allowedOrigins = [
-  'https://clothing-swap-marketplace.vercel.app',
-  'https://clothing-swap-marketplace-ten.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  process.env.FRONTEND_URL // Allow dynamic URL from environment
-].filter(Boolean); // Remove undefined/null values
+app.use(cors({
+  origin: [
+    'https://clothing-swap-marketplace.vercel.app',
+    'https://clothing-swap-marketplace-k60c7r4re-kezar975s-projects.vercel.app',
+    'https://clothing-swap-marketplace-ten.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    '*'  
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -72,4 +77,4 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
-});
+});
