@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 require('dotenv').config();
 
 const express = require('express');
@@ -15,7 +15,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   process.env.FRONTEND_URL 
-].filter(Boolean); //
+].filter(Boolean); 
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -37,10 +37,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB Connection Established'))
   .catch(err => {
@@ -48,19 +46,16 @@ mongoose.connect(process.env.MONGO_URI)
     process.exit(1);
   });
 
-// API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/clothes', require('./routes/clothes'));
 app.use('/api/swaps', require('./routes/swaps'));
 app.use('/api/courier', require('./routes/courier'));
 app.use('/api/stats', require('./routes/stats'));
 
-// Health Check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'ClothSwap API is active' });
 });
 
-// Error Handling Middleware
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   console.error(`[Server Error] ${err.message}`);
@@ -74,7 +69,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });
-=======
+
 require('dotenv').config();
 
 const express = require('express');
@@ -130,4 +125,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });
->>>>>>> 6d0a5482c0a9c4638cb424fd37480decd854b3e9
