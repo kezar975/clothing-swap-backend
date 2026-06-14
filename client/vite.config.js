@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',  // 👈 Backend URL
+        target: 'https://clothing-swap-marketplace.onrender.com/api',  // 👈 Backend URL
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path  // No rewrite needed
