@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { clothingAPI, swapAPI } from '../services/api';
 import { Container, Card, Row, Col, Button, Alert, Modal, Form } from 'react-bootstrap';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://clothing-swap-marketplace.onrender.com/api';
 
 const PLACEHOLDER_IMAGE = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='400' viewBox='0 0 500 400'%3E%3Crect fill='%23e9ecef' width='500' height='400'/%3E%3Ctext fill='%236c757d' font-family='Arial, sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3ENo Image Available%3C/text%3E%3C/svg%3E`;
 

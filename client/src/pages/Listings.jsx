@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { clothingAPI } from '../services/api';
 import { Container, Row, Col, Card, Spinner, Form, Alert } from 'react-bootstrap';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://clothing-swap-marketplace.onrender.com/api';
 
 export default function Listings() {
   const [items, setItems] = useState([]);

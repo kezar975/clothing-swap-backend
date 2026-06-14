@@ -4,7 +4,7 @@ import { clothingAPI } from '../services/api';
 import { Container, Row, Col, Card, Button, Modal, Form, Alert, Badge } from 'react-bootstrap';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://clothing-swap-marketplace.onrender.com/api';
 
 export default function Dashboard() {
   const { user } = useAuth();
