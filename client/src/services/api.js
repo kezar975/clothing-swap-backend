@@ -1,13 +1,17 @@
 import axios from 'axios';
 
+<<<<<<< HEAD
+=======
+const API_BASE = 'https://clothing-swap-marketplace.onrender.com/api';
+>>>>>>> 6d0a5482c0a9c4638cb424fd37480decd854b3e9
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://clothing-swap-marketplace.onrender.com/api';
 const api = axios.create({
   baseURL: API_BASE, 
   headers: {
     'Content-Type': 'application/json'
-  },
-  withCredentials: true
+  }
+
 });
 
 
