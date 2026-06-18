@@ -5,7 +5,6 @@ const Clothing = require('../models/Clothing');
 const authMiddleware = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-// GET /api/clothes - Get All Clothing Listings (with filters)
 router.get('/', async (req, res) => {
   try {
     const { type, size, condition, status, city, page = 1, limit = 12 } = req.query;
@@ -47,7 +46,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/clothes/:id - Get Single Clothing Item
 router.get('/:id', async (req, res) => {
   try {
     const clothing = await Clothing.findById(req.params.id)
@@ -62,7 +60,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/clothes - Create Clothing Listing (with image upload)
 router.post('/', authMiddleware, upload.single('image'), [
   body('title').trim().notEmpty().withMessage('Title is required'),
   body('type').isIn(['Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes']).withMessage('Invalid type'),
@@ -123,7 +120,6 @@ router.post('/', authMiddleware, upload.single('image'), [
   }
 });
 
-// PUT /api/clothes/:id - Update Clothing Listing
 router.put('/:id', authMiddleware, [
   body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
   body('type').optional().isIn(['Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes']),
@@ -151,7 +147,6 @@ router.put('/:id', authMiddleware, [
   }
 });
 
-// DELETE /api/clothes/:id - Delete Clothing Listing
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const clothing = await Clothing.findById(req.params.id);
