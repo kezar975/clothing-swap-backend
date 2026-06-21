@@ -27,16 +27,14 @@ router.post('/register', [
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     const user = new User({
       name,
       email,
-      password: hashedPassword,
+      password: password,
       location: {
         city: city || '',
         coordinates: {
+          type: 'Point',
           coordinates: [longitude || 72.8777, latitude || 19.0760]
         }
       }
@@ -80,7 +78,8 @@ router.post('/login', [
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const isMatch = await bcrypt.compare(password, user.password);
+   
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign(
@@ -109,7 +108,6 @@ router.post('/login', [
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.user.id).select('-password');
-    
     res.json({
       _id: user._id,
       name: user.name,
@@ -127,12 +125,8 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
-    
     const successResponse = { message: 'If this email is registered, you will receive a reset link.' };
-    
-    if (!user) {
-      return res.json(successResponse);
-    }
+    if (!user) return res.json(successResponse);
 
     const resetToken = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
@@ -140,7 +134,7 @@ router.post('/forgot-password', async (req, res) => {
     await user.save();
 
     const resetURL = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
-    
+
     await sendEmail(
       user.email,
       'Password Reset Request - SwapStyle',
@@ -149,17 +143,14 @@ router.post('/forgot-password', async (req, res) => {
         <div style="font-family: Arial, sans-serif; padding: 20px;">
           <h2>SwapStyle Password Reset</h2>
           <p>Hello ${user.name},</p>
-          <p>You requested a password reset. Click the button below to create a new password:</p>
+          <p>You requested a password reset. Click the button below:</p>
           <a href="${resetURL}" style="background: #0d6efd; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
           <p><small>This link expires in 10 minutes.</small></p>
-          <p>If you didn't request this, please ignore this email.</p>
         </div>
       `
     );
 
-    console.log(`Reset email sent to ${user.email}`);
     res.json(successResponse);
-    
   } catch (err) {
     console.error('Forgot Password Error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -169,7 +160,7 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/reset-password/:token', async (req, res) => {
   try {
     const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-    
+
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() }
@@ -177,11 +168,11 @@ router.post('/reset-password/:token', async (req, res) => {
 
     if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
 
+  
     user.password = req.body.password;
-    
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
-    
+
     await user.save();
 
     res.json({ message: 'Password reset successful' });
