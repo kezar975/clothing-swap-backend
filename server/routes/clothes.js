@@ -13,19 +13,19 @@ router.get('/', async (req, res) => {
     if (type && type.trim() !== '') filter.type = type;
     if (size && size.trim() !== '') filter.size = new RegExp(`^${size}$`, 'i');
     if (condition && condition.trim() !== '') filter.condition = condition;
-    
+
     if (status && status.trim() !== '') {
       filter.status = status;
     } else {
       filter.status = 'Available';
     }
-    
+
     if (city && city.trim() !== '') {
       filter['location.city'] = new RegExp(city.trim(), 'i');
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const clothes = await Clothing.find(filter)
       .populate('owner', 'name email location')
       .sort({ createdAt: -1 })
@@ -50,7 +50,7 @@ router.get('/:id', async (req, res) => {
   try {
     const clothing = await Clothing.findById(req.params.id)
       .populate('owner', 'name email location');
-    
+
     if (!clothing) return res.status(404).json({ message: 'Item not found' });
 
     res.json({ clothing });
@@ -62,8 +62,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', authMiddleware, upload.single('image'), [
   body('title').trim().notEmpty().withMessage('Title is required'),
-  body('type').isIn(['Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes']).withMessage('Invalid type'),
-  body('size').trim().notEmpty().withMessage('Size is required'),
+  body('type').isIn(['T-Shirt', 'Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes', 'Other']).withMessage('Invalid type'), body('size').trim().notEmpty().withMessage('Size is required'),
   body('condition').isIn(['New', 'Like New', 'Good', 'Fair']).withMessage('Invalid condition'),
   body('estimatedValue').isNumeric().withMessage('Value must be a number'),
   body('city').optional().trim()
@@ -74,8 +73,7 @@ router.post('/', authMiddleware, upload.single('image'), [
   try {
     const { title, type, brand, size, condition, estimatedValue, description, city } = req.body;
 
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
-
+    const imageUrl = req.file ? req.file.path : '';
     const cityCoordinates = {
       'mumbai': { lat: 19.0760, lng: 72.8777 },
       'delhi': { lat: 28.7041, lng: 77.1025 },
@@ -122,8 +120,7 @@ router.post('/', authMiddleware, upload.single('image'), [
 
 router.put('/:id', authMiddleware, [
   body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
-  body('type').optional().isIn(['Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes']),
-  body('condition').optional().isIn(['New', 'Like New', 'Good', 'Fair']),
+  body('type').optional().isIn(['T-Shirt', 'Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes', 'Other']), body('condition').optional().isIn(['New', 'Like New', 'Good', 'Fair']),
   body('estimatedValue').optional().isNumeric()
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -164,4 +161,4 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router;S
