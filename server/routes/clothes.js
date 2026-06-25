@@ -5,7 +5,7 @@ const Clothing = require('../models/Clothing');
 const authMiddleware = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res) => { 
   try {
     const { type, size, condition, status, city, page = 1, limit = 12 } = req.query;
     const filter = {};
@@ -13,19 +13,16 @@ router.get('/', async (req, res) => {
     if (type && type.trim() !== '') filter.type = type;
     if (size && size.trim() !== '') filter.size = new RegExp(`^${size}$`, 'i');
     if (condition && condition.trim() !== '') filter.condition = condition;
-
     if (status && status.trim() !== '') {
       filter.status = status;
     } else {
       filter.status = 'Available';
     }
-
     if (city && city.trim() !== '') {
       filter['location.city'] = new RegExp(city.trim(), 'i');
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-
     const clothes = await Clothing.find(filter)
       .populate('owner', 'name email location')
       .sort({ createdAt: -1 })
@@ -52,7 +49,6 @@ router.get('/:id', async (req, res) => {
       .populate('owner', 'name email location');
 
     if (!clothing) return res.status(404).json({ message: 'Item not found' });
-
     res.json({ clothing });
   } catch (err) {
     console.error('Fetch Clothing Error:', err);
@@ -62,7 +58,8 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', authMiddleware, upload.single('image'), [
   body('title').trim().notEmpty().withMessage('Title is required'),
-  body('type').isIn(['T-Shirt', 'Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes', 'Other']).withMessage('Invalid type'), body('size').trim().notEmpty().withMessage('Size is required'),
+  body('type').isIn(['T-Shirt', 'Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes', 'Other']).withMessage('Invalid type'),
+  body('size').trim().notEmpty().withMessage('Size is required'),
   body('condition').isIn(['New', 'Like New', 'Good', 'Fair']).withMessage('Invalid condition'),
   body('estimatedValue').isNumeric().withMessage('Value must be a number'),
   body('city').optional().trim()
@@ -72,8 +69,8 @@ router.post('/', authMiddleware, upload.single('image'), [
 
   try {
     const { title, type, brand, size, condition, estimatedValue, description, city } = req.body;
-
     const imageUrl = req.file ? req.file.path : '';
+    
     const cityCoordinates = {
       'mumbai': { lat: 19.0760, lng: 72.8777 },
       'delhi': { lat: 28.7041, lng: 77.1025 },
@@ -118,9 +115,10 @@ router.post('/', authMiddleware, upload.single('image'), [
   }
 });
 
-router.put('/:id', authMiddleware, [
+router.put('/:id', authMiddleware, upload.single('image'), [
   body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
-  body('type').optional().isIn(['T-Shirt', 'Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes', 'Other']), body('condition').optional().isIn(['New', 'Like New', 'Good', 'Fair']),
+  body('type').optional().isIn(['T-Shirt', 'Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes', 'Other']),
+  body('condition').optional().isIn(['New', 'Like New', 'Good', 'Fair']),
   body('estimatedValue').optional().isNumeric()
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -134,9 +132,46 @@ router.put('/:id', authMiddleware, [
       return res.status(403).json({ message: 'Not authorized to update this item' });
     }
 
-    Object.assign(clothing, req.body);
-    await clothing.save();
+    const { title, type, brand, size, condition, estimatedValue, description, city } = req.body;
+    
+    if (title !== undefined && title.trim() !== '') clothing.title = title;
+    if (type !== undefined) clothing.type = type;
+    if (brand !== undefined) clothing.brand = brand;
+    if (size !== undefined && size.trim() !== '') clothing.size = size;
+    if (condition !== undefined) clothing.condition = condition;
+    if (estimatedValue !== undefined) clothing.estimatedValue = estimatedValue;
+    if (description !== undefined) clothing.description = description;
+    
+    if (city !== undefined && city.trim() !== '') {
+      const cityCoordinates = {
+        'mumbai': { lat: 19.0760, lng: 72.8777 },
+        'delhi': { lat: 28.7041, lng: 77.1025 },
+        'bangalore': { lat: 12.9716, lng: 77.5946 },
+        'chennai': { lat: 13.0827, lng: 80.2707 },
+        'kolkata': { lat: 22.5726, lng: 88.3639 },
+        'hyderabad': { lat: 17.3850, lng: 78.4867 },
+        'pune': { lat: 18.5204, lng: 73.8567 },
+        'ahmedabad': { lat: 23.0225, lng: 72.5714 },
+        'jaipur': { lat: 26.9124, lng: 75.7873 },
+        'surat': { lat: 21.1702, lng: 72.8311 }
+      };
+      const cityName = city.toLowerCase().trim();
+      const coords = cityCoordinates[cityName] || clothing.location.coordinates.coordinates;
+      
+      clothing.location = {
+        city: city,
+        coordinates: {
+          type: 'Point',
+          coordinates: [coords.lng, coords.lat]
+        }
+      };
+    }
 
+    if (req.file) {
+      clothing.images = [req.file.path];
+    }
+
+    await clothing.save();
     res.json({ message: 'Item updated successfully', clothing });
   } catch (err) {
     console.error('Update Clothing Error:', err);
