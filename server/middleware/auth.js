@@ -1,25 +1,19 @@
-const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('cloudinary').v2;
+const jwt = require('jsonwebtoken');
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
+const authMiddleware = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'swapstyle',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [{ width: 800, height: 800, crop: 'limit' }]
+    if (!token) {
+      return res.status(401).json({ message: 'No token, authorization denied' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Token is not valid' });
   }
-});
+};
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }
-});
-
-module.exports = upload;
+module.exports = authMiddleware;
