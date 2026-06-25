@@ -54,6 +54,7 @@ app.use('/api/clothes', require('./routes/clothes'));
 app.use('/api/swaps', require('./routes/swaps'));
 app.use('/api/courier', require('./routes/courier'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'ClothSwap API is active' });
