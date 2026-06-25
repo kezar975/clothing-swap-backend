@@ -8,10 +8,10 @@ const clothingSchema = new mongoose.Schema({
   },
   title: { type: String, required: true, trim: true },
   type: {
-    type: String,
-    required: true,
-    enum: ['Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes', 'Accessory', 'Other']
-  },
+  type: String,
+  enum: ['T-Shirt', 'Shirt', 'Pants', 'Jacket', 'Dress', 'Shoes', 'Other'],
+  required: true
+},
   brand: { type: String, trim: true, default: 'Unbranded' },
   size: { type: String, required: true, trim: true },
   condition: {
