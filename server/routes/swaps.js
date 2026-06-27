@@ -3,6 +3,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const SwapRequest = require('../models/SwapRequest');
 const Clothing = require('../models/Clothing');
+const UserStats = require('../models/UserStats'); 
 const authMiddleware = require('../middleware/auth');
 
 router.post('/', authMiddleware, [
@@ -53,7 +54,6 @@ router.post('/', authMiddleware, [
     });
 
     await swap.save();
-
     res.status(201).json({ message: 'Swap request sent', swap, isFair });
   } catch (err) {
     console.error('Create Swap Error:', err);
@@ -65,7 +65,7 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user.id;
     const { status } = req.query;
-    
+
     const filter = { $or: [{ sender: userId }, { receiver: userId }] };
     if (status) filter.status = status;
 
@@ -90,14 +90,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
       .populate('receiver', 'name email location')
       .populate('item1', 'title estimatedValue')
       .populate('item2', 'title estimatedValue');
-    
+
     if (!swap) {
       return res.status(404).json({ message: 'Swap request not found' });
     }
 
     const isSender = swap.sender._id.toString() === req.user.user.id;
     const isReceiver = swap.receiver._id.toString() === req.user.user.id;
-    
+
     if (!isSender && !isReceiver) {
       return res.status(403).json({ message: 'Not authorized to view this swap' });
     }
@@ -108,6 +108,34 @@ router.get('/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+const updateUserEcoStats = async (userId) => {
+  try {
+    let stats = await UserStats.findOne({ user: userId });
+    if (!stats) {
+      stats = new UserStats({ user: userId });
+    }
+
+    const swapCount = await SwapRequest.countDocuments({
+      $or: [{ sender: userId }, { receiver: userId }],
+      status: 'Completed'
+    });
+    const listedCount = await Clothing.countDocuments({ owner: userId });
+
+    stats.successfulSwaps = swapCount;
+    stats.totalSwaps = swapCount;
+    stats.itemsListed = listedCount;
+    stats.itemsSwapped = swapCount;
+    stats.textileWasteSavedKg = parseFloat((swapCount * 0.5).toFixed(2));
+    stats.co2SavedKg = parseFloat((swapCount * 0.24).toFixed(2));
+
+    stats.calculateEcoScore();
+    stats.checkBadges();
+    await stats.save();
+  } catch (err) {
+    console.error('Eco stats update error:', err);
+  }
+};
 
 router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
@@ -123,8 +151,12 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
     const isReceiver = swap.receiver.toString() === req.user.user.id;
     if (!isSender && !isReceiver) return res.status(403).json({ message: 'Not authorized' });
 
-    if (status === 'Accepted' && !isReceiver) return res.status(403).json({ message: 'Only receiver can accept' });
-    if (status === 'Completed' && swap.status !== 'Accepted') return res.status(400).json({ message: 'Swap must be accepted first' });
+    if (status === 'Accepted' && !isReceiver) {
+      return res.status(403).json({ message: 'Only receiver can accept' });
+    }
+    if (status === 'Completed' && swap.status !== 'Accepted') {
+      return res.status(400).json({ message: 'Swap must be accepted first' });
+    }
 
     swap.status = status;
     await swap.save();
@@ -133,6 +165,11 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
       await Promise.all([
         Clothing.findByIdAndUpdate(swap.item1, { status: 'Swapped' }),
         Clothing.findByIdAndUpdate(swap.item2, { status: 'Swapped' })
+      ]);
+
+      await Promise.all([
+        updateUserEcoStats(swap.sender.toString()),
+        updateUserEcoStats(swap.receiver.toString())
       ]);
     }
 
@@ -160,7 +197,7 @@ router.post('/:swapId/message', authMiddleware, [
     const swap = await SwapRequest.findById(swapId)
       .populate('sender', 'name email')
       .populate('receiver', 'name email');
-    
+
     if (!swap) {
       return res.status(404).json({ message: 'Swap request not found' });
     }
@@ -169,9 +206,7 @@ router.post('/:swapId/message', authMiddleware, [
       return res.status(403).json({ message: 'Not authorized to message in this swap' });
     }
 
-    if (!swap.messages) {
-      swap.messages = [];
-    }
+    if (!swap.messages) swap.messages = [];
 
     swap.messages.push({
       sender: senderId,

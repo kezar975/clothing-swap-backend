@@ -8,32 +8,29 @@ const authMiddleware = require('../middleware/auth');
 router.get('/my', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user.id;
-    
+
     let stats = await UserStats.findOne({ user: userId }).populate('user', 'name email');
-    
     if (!stats) {
-      const swapCount = await SwapRequest.countDocuments({ 
-        $or: [{ sender: userId }, { receiver: userId }],
-        status: 'Completed'
-      });
-      
-      const listedCount = await Clothing.countDocuments({ owner: userId });
-      
-      stats = new UserStats({
-        user: userId,
-        successfulSwaps: swapCount,
-        totalSwaps: swapCount,
-        itemsListed: listedCount,
-        itemsSwapped: swapCount * 2,
-        textileWasteSavedKg: swapCount * 0.5,
-        co2SavedKg: swapCount * 0.24
-      });
-      
-      stats.calculateEcoScore();
-      stats.checkBadges();
-      await stats.save();
+      stats = new UserStats({ user: userId });
     }
-    
+
+    const swapCount = await SwapRequest.countDocuments({
+      $or: [{ sender: userId }, { receiver: userId }],
+      status: 'Completed'
+    });
+    const listedCount = await Clothing.countDocuments({ owner: userId });
+
+    stats.successfulSwaps = swapCount;
+    stats.totalSwaps = swapCount;
+    stats.itemsListed = listedCount;
+    stats.itemsSwapped = swapCount;
+    stats.textileWasteSavedKg = parseFloat((swapCount * 0.5).toFixed(2));
+    stats.co2SavedKg = parseFloat((swapCount * 0.24).toFixed(2));
+
+    stats.calculateEcoScore();
+    stats.checkBadges();
+    await stats.save();
+
     res.json({ stats });
   } catch (err) {
     console.error('Stats Error:', err);
@@ -48,7 +45,7 @@ router.get('/platform', async (req, res) => {
     const totalListings = await Clothing.countDocuments();
     const totalWasteSaved = totalSwaps * 0.5;
     const totalCO2Saved = totalSwaps * 0.24;
-    
+
     res.json({
       stats: {
         totalUsers,
@@ -56,7 +53,9 @@ router.get('/platform', async (req, res) => {
         totalListings,
         totalWasteSaved: totalWasteSaved.toFixed(1),
         totalCO2Saved: totalCO2Saved.toFixed(1),
-        activeSwaps: await SwapRequest.countDocuments({ status: { $in: ['Pending', 'Accepted'] } })
+        activeSwaps: await SwapRequest.countDocuments({
+          status: { $in: ['Pending', 'Accepted'] }
+        })
       }
     });
   } catch (err) {
@@ -68,24 +67,31 @@ router.get('/platform', async (req, res) => {
 router.post('/update', authMiddleware, async (req, res) => {
   try {
     const { userId, swapCompleted } = req.body;
-    
+
     let stats = await UserStats.findOne({ user: userId });
     if (!stats) {
       stats = new UserStats({ user: userId });
     }
-    
+
     if (swapCompleted) {
-      stats.successfulSwaps += 1;
-      stats.totalSwaps += 1;
-      stats.itemsSwapped += 2;
-      stats.textileWasteSavedKg += 0.5;
-      stats.co2SavedKg += 0.24;
+      const swapCount = await SwapRequest.countDocuments({
+        $or: [{ sender: userId }, { receiver: userId }],
+        status: 'Completed'
+      });
+      const listedCount = await Clothing.countDocuments({ owner: userId });
+
+      stats.successfulSwaps = swapCount;
+      stats.totalSwaps = swapCount;
+      stats.itemsListed = listedCount;
+      stats.itemsSwapped = swapCount;
+      stats.textileWasteSavedKg = parseFloat((swapCount * 0.5).toFixed(2));
+      stats.co2SavedKg = parseFloat((swapCount * 0.24).toFixed(2));
     }
-    
+
     stats.calculateEcoScore();
     const newBadges = stats.checkBadges();
     await stats.save();
-    
+
     res.json({ stats, newBadges });
   } catch (err) {
     console.error('Update Stats Error:', err);
@@ -100,8 +106,10 @@ router.get('/leaderboard', async (req, res) => {
       .sort({ ecoScore: -1, successfulSwaps: -1 })
       .limit(10)
       .select('user ecoScore successfulSwaps textileWasteSavedKg badges');
-    
-    res.json({ leaderboard: topUsers });
+
+    const filtered = topUsers.filter(entry => entry.user !== null);
+
+    res.json({ leaderboard: filtered });
   } catch (err) {
     console.error('Leaderboard Error:', err);
     res.status(500).json({ message: 'Server error' });
