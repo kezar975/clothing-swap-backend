@@ -67,16 +67,21 @@ router.post('/:swapId', authMiddleware, [
 
     const { sender, receiver, courierService, trackingId, notes } = req.body;
 
-    let estimatedCost = 100;
-    if (sender?.pincode && receiver?.pincode) {
+    let estimatedCost = 0;
+    
+    if (courierService === 'Pickup') {
+      estimatedCost = 0;
+    } else if (sender?.pincode && receiver?.pincode) {
       const pinDiff = Math.abs(parseInt(sender.pincode) - parseInt(receiver.pincode));
       if (pinDiff > 10000) estimatedCost = 200;
       else if (pinDiff > 5000) estimatedCost = 150;
       else estimatedCost = 80;
+    } else {
+      estimatedCost = 100; 
     }
 
     let courierInfo = await CourierInfo.findOne({ swap: swapId });
-    
+
     if (courierInfo) {
       Object.assign(courierInfo, {
         sender: sender || courierInfo.sender,
